@@ -2,10 +2,12 @@ import requests
 import pprint
 import json
 import time
+import random
+ 
 
 url = "http://192.168.100.100:8080"
 resendMaxCount=5
-resendInterval=60
+resendInterval=[40,60]
 
 def getDevices():
     response = requests.get(url+"/json.htm?type=devices&filter=light&used=true&order=Name");
@@ -30,17 +32,21 @@ def turnOnOff(idx,switchcmd):
 lastDeviceState = {}
 deviceResendCnt = {}
 while True:
-    devices = getDevices()
-    for device in devices:
-        idx=device["idx"]
-        lastStatus=lastDeviceState.get(idx)
-        lastDeviceState[idx]=device["Status"];
-        if deviceResendCnt.get(idx)==None or lastStatus!=device["Status"]:
-            deviceResendCnt[idx]=resendMaxCount
+    try:
+        devices = getDevices()
+        for device in devices:
+            idx=device["idx"]
+            if deviceResendCnt.get(idx)==None:
+                deviceResendCnt[idx]=0
+            elif lastDeviceState[idx]!=device["Status"]:
+                deviceResendCnt[idx]=resendMaxCount
+            lastDeviceState[idx]=device["Status"];
             
-        if device["SubType"]=="AC" and device["SwitchType"]=="On/Off"  and deviceResendCnt[idx]>0:
-            print device["idx"],device["Status"],deviceResendCnt[idx]
-            turnOnOff(idx, device["Status"]);
-            deviceResendCnt[idx]=deviceResendCnt[idx]-1;
-    time.sleep(resendInterval)
+            if device["SubType"]=="AC" and device["SwitchType"]=="On/Off"  and deviceResendCnt[idx]>0:
+                print device["idx"],device["Status"],deviceResendCnt[idx]
+                turnOnOff(idx, device["Status"]);
+                deviceResendCnt[idx]=deviceResendCnt[idx]-1;
+    except:
+        print("An exception occurred") 
+    time.sleep(random.randint(resendInterval[0], resendInterval[1]))
 
